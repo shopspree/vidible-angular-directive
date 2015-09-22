@@ -1,3 +1,10 @@
+.idea
+.tmp
+
+
+# bower components
+lib
+
 # Logs
 logs
 *.log

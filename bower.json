@@ -1,0 +1,26 @@
+{
+  "name": "vidible-angular-directive",
+  "version": "1.0.0",
+  "homepage": "https://github.com/shopspree/vidible-angular-directive",
+  "authors": [
+    "Tomer Sela <tomersela@gmail.com>"
+  ],
+  "description": "Angular directive for the Vidible JS player",
+  "keywords": [
+    "vidible",
+    "angular",
+    "directive"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.4.6",
+    "jquery": "~2.1.4"
+  }
+}
