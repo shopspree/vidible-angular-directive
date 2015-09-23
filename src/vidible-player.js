@@ -8,7 +8,7 @@
     ng.module('vidible-module', [])
         .service('vidibleQueueLoader', ['$http', '$timeout', function ($http, $timeout) {
             var VidibleLoaderQueue = {};
-            var videoReadytimeout = 5000;
+            var videoReadyTimeout = 5000;
             var queue = [];
 
             function loadScriptByVideoId(videoId, callback) {
@@ -46,20 +46,23 @@
 
             function processQueue() {
                 if (queue.length > 0) {
-                    //remove element from queue
+                    // Remove element from queue
                     var item = queue.shift();
-                    var vidibleElement = item.elem;
 
-                    loadScriptByVideoId(item.vid, function(statusCode, script) {
+                    var vidibleElement = angular.element('<div class="player vdb_player"></div>');
+                    // Load the Vidible script
+                    loadScriptByVideoId(item.vid, function (statusCode, script) {
                         if (statusCode == 200) {
                             var vidElement = ng.element(vidibleElement)
                             vidElement.addClass('vdb_55c8aae9e4b0ca68372fb55355af9dcae4b02944c03a2eee');
-                            vidElement.append(script);
-                            waitForPlayerToBeReady(vidibleElement[0], function() {
-                                item.cb(vidibleElement[0]);
-                                // process next video
+                            vidibleElement.append(script);
+
+                            // Create new Vidible element
+                            item.elem.append(vidibleElement);
+                            waitForPlayerToBeReady(vidibleElement[0], function (player) {
+                                item.cb(player)
                                 processQueue();
-                            }, videoReadytimeout);
+                            }, videoReadyTimeout);
                         } else {
                             console.error('Error loading vidable with id = ' + item.vid);
                             processQueue();
@@ -68,10 +71,10 @@
                 }
             };
 
-            VidibleLoaderQueue.queueForProcessing = function(vidibleElement, videoId, callback) {
+            VidibleLoaderQueue.queueForProcessing = function(videoId, containerElement, callback) {
                 queue.push({
                     vid: videoId,
-                    elem: vidibleElement,
+                    elem: containerElement,
                     cb: callback
                 });
 
@@ -85,8 +88,8 @@
             return VidibleLoaderQueue;
         }])
         .directive('vidiblePlayer', ['$timeout', 'vidibleQueueLoader',
-            function($timeout, vidibleQueueLoader) {
-                var pageUniqueId = 1;
+            function ($timeout, vidibleQueueLoader) {
+                var pageUniqeId = 1;
                 var eventPrefix = 'vidible.player.';
 
                 function getVidibleEventName(vidibleEvent) {
@@ -107,25 +110,21 @@
                     restrict: 'EA',
                     scope: {
                         videoId: '=videoId',
-                        //player: '=?player',
                         playerId: '@playerId'
                     },
                     link: function(scope, element, attrs) {
                         // Set elementId if not already defined
-                        var playerId = element[0].id || attrs.playerId || 'page-unique-vidible-id-' + pageUniqueId++;
+                        var playerId = element[0].id || attrs.playerId || 'page-unique-vidible-id-' + pageUniqeId++;
                         element[0].id = playerId;
 
-                        function broadcastEvent() {
+                        function broadcastEvent () {
                             var args = Array.prototype.slice.call(arguments);
-                            scope.$apply(function() {
+                            scope.$apply(function () {
                                 scope.$emit.apply(scope, args);
                             });
                         }
 
                         function initPlayer(player) {
-                            console.log('initPlayer');
-                            scope.player = player;
-
                             [vidible.PLAYER_READY,
                                 vidible.VIDEO_END,
                                 vidible.VIDEO_PAUSE,
@@ -141,10 +140,8 @@
                             // Destroy player if exist
                             destroyPlayer();
 
-                            var vidibleElement = angular.element('<div class="player vdb_player"></div>');
                             // Create new Vidible element
-                            element.append(vidibleElement);
-                            vidibleQueueLoader.queueForProcessing(vidibleElement, videoId, initPlayer);
+                            vidibleQueueLoader.queueForProcessing(videoId, element, initPlayer);
                         }
 
                         function destroyPlayer() {
@@ -173,5 +170,5 @@
                     }
                 };
             }
-        ]);
+        ])
 })(angular);
