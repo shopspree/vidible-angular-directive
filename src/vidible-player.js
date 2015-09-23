@@ -25,7 +25,6 @@
 
             var stratedWaiting = null;
             function waitForPlayerToBeReady(div, cb, timeout) {
-                // TODO: add timeout option and broadcast error in case of timeout
                 if (!stratedWaiting) {
                     stratedWaiting = new Date().getTime();
                 }
@@ -45,19 +44,6 @@
                 }
             }
 
-            VidibleLoaderQueue.queueForProcessing = function(vidibleElement, videoId) {
-                queue.push({
-                    vid: videoId,
-                    elem: vidibleElement
-                });
-
-                if (queue.length > 1) {
-                    return;
-                }
-
-                processQueue();
-            };
-
             function processQueue() {
                 if (queue.length > 0) {
                     //remove element from queue
@@ -69,7 +55,8 @@
                             var vidElement = ng.element(vidibleElement)
                             vidElement.addClass('vdb_55c8aae9e4b0ca68372fb55355af9dcae4b02944c03a2eee');
                             vidElement.append(script);
-                            waitForPlayerToBeReady(vidibleElement, function() {
+                            waitForPlayerToBeReady(vidibleElement[0], function() {
+                                item.cb(vidibleElement[0]);
                                 // process next video
                                 processQueue();
                             }, videoReadytimeout);
@@ -81,12 +68,25 @@
                 }
             };
 
+            VidibleLoaderQueue.queueForProcessing = function(vidibleElement, videoId, callback) {
+                queue.push({
+                    vid: videoId,
+                    elem: vidibleElement,
+                    cb: callback
+                });
+
+                if (queue.length > 1) {
+                    return;
+                }
+
+                processQueue();
+            };
+
             return VidibleLoaderQueue;
         }])
         .directive('vidiblePlayer', ['$timeout', 'vidibleQueueLoader',
             function($timeout, vidibleQueueLoader) {
                 var pageUniqueId = 1;
-                var queuedVidibleElements = 0;
                 var eventPrefix = 'vidible.player.';
 
                 function getVidibleEventName(vidibleEvent) {
@@ -137,34 +137,14 @@
                                 });
                         }
 
-                        function waitForPlayerToBeReady(div, cb) {
-                            // TODO: add timeout option and broadcast error in case of timeout
-                            if (div.vdb_Player) {
-                                cb(div.vdb_Player);
-                            } else {
-                                $timeout(function() { waitForPlayerToBeReady(div,cb); }, 0);
-                            }
-                        }
-
-                        function queueVidibleElementInsertion(containerElement, vidibleElement) {
-                            queuedVidibleElements++;
-                            if (queuedVidibleElements > 1) {
-
-                            }
-                            $timeout(function() {
-                                containerElement.append(vidibleElement);
-                                //waitForPlayerToBeReady(vidibleElement[0], initPlayer);
-                            }, 100);
-                        }
-
                         function createPlayer(videoId) {
-                            // destroy player if exist
+                            // Destroy player if exist
                             destroyPlayer();
 
                             var vidibleElement = angular.element('<div class="player vdb_player"></div>');
                             // Create new Vidible element
                             element.append(vidibleElement);
-                            vidibleQueueLoader.queueForProcessing(vidibleElement, videoId);
+                            vidibleQueueLoader.queueForProcessing(vidibleElement, videoId, initPlayer);
                         }
 
                         function destroyPlayer() {
@@ -182,7 +162,6 @@
                                 if (ready) {
                                     stopWatchingReady();
                                     scope.$watch('videoId', function () {
-                                        //console.log('createPlayer: scope.videoId = ' + scope.videoId)
                                         createPlayer(scope.videoId);
                                     });
                                 }
