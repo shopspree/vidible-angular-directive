@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Angular Vidible player module - Simple demo</title>
+    <title>Angular Vidible player module - Events demo</title>
 </head>
 <body ng-app="myApp">
 
@@ -20,6 +20,7 @@
 
 <!-- Vidible Angular module -->
 <!--<script src="../dist/vidible-player-angular.min.js"></script>-->
+<script src="../src/angular-loadscript.js"></script>
 <script src="../src/vidible-player.js"></script>
 
 <script>
@@ -30,6 +31,23 @@
     myApp.controller('MyCtrl', function ($scope) {
         // specify video id
         $scope.myVideo = '55be0899e4b02f074914330f';
+
+        $scope.$on('vidible.player.ready', function ($event, player, playerData) {
+            console.log('vidible.player.ready');
+        });
+
+        $scope.$on('vidible.player.play', function ($event, player, playerData) {
+            console.log('vidible.player.playing');
+        });
+
+        $scope.$on('vidible.player.pause', function ($event, player, playerData) {
+            console.log('vidible.player.paused');
+        });
+
+        $scope.$on('vidible.player.ended', function ($event, player, playerData) {
+            console.log('vidible.player.ended');
+        });
+
     });
 </script>
 

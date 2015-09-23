@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<h1>Vidible dynamic load bug</h1>
+<h3>In some of the page loads - the videos will be placed in the opposite order.</h3>
+<h3>This problem is solved by a workaround implemented in our module.<br/>
+    See vidible-dynamic-load-issue.md for more information and multiple-players.html in the demo directory for a working solution.</h3>
+<div id="container"></div>
+
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script>
+    var vidElements =
+        '<div id="vidiblePlayer1" class="vdb_player vdb_55c8aae9e4b0ca68372fb55355af9dcae4b02944c03a2eee">' +
+            '<script type="text/javascript" src="//delivery.vidible.tv/jsonp/pid=55c8aae9e4b0ca68372fb553/vid=55be0899e4b02f074914330f/55af9dcae4b02944c03a2eee.js"><\/script>' +
+        '</div>' +
+        '<div id="vidiblePlayer2" class="vdb_player vdb_55c8aae9e4b0ca68372fb55355af9dcae4b02944c03a2eee">' +
+            '<script type="text/javascript" src="//delivery.vidible.tv/jsonp/pid=55c8aae9e4b0ca68372fb553/vid=55be318be4b02f07491434ac/55af9dcae4b02944c03a2eee.js"><\/script>' +
+        '</div>';
+    $('#container').append(vidElements);
+</script>
+
+</body>
+</html>

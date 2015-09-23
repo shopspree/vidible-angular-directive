@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Angular Vidible player module - Multiple players demo</title>
+</head>
+<body ng-app="myApp">
+
+<div class="container" ng-controller="MyCtrl">
+    <!-- Vidible directive -->
+    <vidible-player id="demoPlayer1" video-id="player1.videoId" player="player1.player"></vidible-player>
+    <vidible-player id="demoPlayer2" video-id="player2.videoId" player="player2.player"></vidible-player>
+</div>
+
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="../lib/jquery/dist/jquery.min.js"><\/script>')</script>
+
+<!-- Angular -->
+<script src="../lib/angular/angular.min.js"></script>
+
+<!-- Vidible Angular module -->
+<!--<script src="../dist/vidible-player-angular.min.js"></script>-->
+<!--<script src="../src/angular-loadscript.js"></script>-->
+<script src="../src/vidible-player.js"></script>
+
+<script>
+    var myApp = angular.module('myApp', [
+        'vidible-module'
+    ]);
+
+    myApp.controller('MyCtrl', function ($scope) {
+        $scope.player1 = {
+            videoId: '55be0899e4b02f074914330f',
+            player: null
+        };
+
+        $scope.player2 = {
+            videoId: '55be318be4b02f07491434ac',
+            player: null
+        };
+
+        // specify video id
+        $scope.myVideo = '55be0899e4b02f074914330f';
+
+        $scope.$on('vidible.player.ready', function ($event, player, playerData) {
+            console.log('vidible.player.ready');
+        });
+
+        $scope.$on('vidible.player.play', function ($event, player, playerData) {
+            console.log('vidible.player.playing');
+        });
+
+        $scope.$on('vidible.player.pause', function ($event, player, playerData) {
+            console.log('vidible.player.paused');
+        });
+
+        $scope.$on('vidible.player.ended', function ($event, player, playerData) {
+            console.log('vidible.player.ended');
+        });
+
+    });
+</script>
+
+</body>
+</html>
