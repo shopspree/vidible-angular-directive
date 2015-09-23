@@ -21,44 +21,35 @@
 
 <!-- Vidible Angular module -->
 <!--<script src="../dist/vidible-player-angular.min.js"></script>-->
-<!--<script src="../src/angular-loadscript.js"></script>-->
 <script src="../src/vidible-player.js"></script>
 
 <script>
     var myApp = angular.module('myApp', [
         'vidible-module'
     ]);
-
     myApp.controller('MyCtrl', function ($scope) {
         $scope.player1 = {
             videoId: '55be0899e4b02f074914330f',
             player: null
         };
-
         $scope.player2 = {
             videoId: '55be318be4b02f07491434ac',
             player: null
         };
-
         // specify video id
         $scope.myVideo = '55be0899e4b02f074914330f';
-
         $scope.$on('vidible.player.ready', function ($event, player, playerData) {
-            console.log('vidible.player.ready');
+            console.log(playerData.data.videoId + ': vidible.player.ready');
         });
-
-        $scope.$on('vidible.player.play', function ($event, player, playerData) {
-            console.log('vidible.player.playing');
+        $scope.$on('vidible.player.playing', function ($event, player, playerData) {
+            console.log(playerData.data.videoId + ': vidible.player.playing');
         });
-
-        $scope.$on('vidible.player.pause', function ($event, player, playerData) {
-            console.log('vidible.player.paused');
+        $scope.$on('vidible.player.paused', function ($event, player, playerData) {
+            console.log(playerData.data.videoId + ': vidible.player.paused');
         });
-
         $scope.$on('vidible.player.ended', function ($event, player, playerData) {
-            console.log('vidible.player.ended');
+            console.log(playerData.data.videoId + ': vidible.player.ended');
         });
-
     });
 </script>
 
