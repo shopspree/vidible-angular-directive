@@ -76,4 +76,11 @@ gulp.task('shrinkwrap', function () {
         .pipe(gulp.dest('./'));  // writes newly created `npm-shrinkwrap.json` to the location of your choice
 });
 
+// Watch file changes and update
+gulp.task('watch', function () {
+    gulp.watch(config.srcFolder + '/**/*.js', ['js']);
+    gulp.watch(config.srcFolder + '/**/*.scss', ['sass']);
+    gulp.watch('./bower.json', ['bower']);
+});
+
 gulp.task('default', ['shrinkwrap', 'bower', 'sass', 'javascripts']);

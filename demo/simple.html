@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Angular Vidible player demo</title>
+</head>
+<body ng-app="myApp">
+
+<div class="container" ng-controller="MyCtrl">
+    <!-- Vidible directive -->
+    <vidible-player player-id="demoPlayer" video-id="myVideo"></vidible-player>
+</div>
+
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="../lib/jquery/dist/jquery.min.js"><\/script>')</script>
+
+<!-- Angular -->
+<script src="../lib/angular/angular.min.js"></script>
+
+<!-- Vidible Angular module -->
+<!--<script src="../dist/vidible-player-angular.min.js"></script>-->
+<script src="../src/angular-loadscript.js"></script>
+<script src="../src/vidible-player.js"></script>
+
+<script>
+    var myApp = angular.module('myApp', [
+        'vidible-module'
+    ]);
+
+    myApp.controller('MyCtrl', function ($scope) {
+        // have a video id
+        $scope.myVideo = '55be0899e4b02f074914330f';
+    });
+</script>
+
+</body>
+</html>

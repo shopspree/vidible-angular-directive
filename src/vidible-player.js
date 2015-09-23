@@ -27,16 +27,14 @@
                 }
 
                 return {
-                    restrict: 'E',
-                    replace: true,
-                    template: '<div class="player vdb_player vdb_55c8aae9e4b0ca68372fb55355af9dcae4b02944c03a2eee"></div>',
+                    restrict: 'EA',
                     scope: {
-                        videoId: '@videoId'
-                        //playerId: '@playerId'
+                        videoId: '=videoId',
+                        playerId: '@playerId'
                     },
                     link: function(scope, element, attrs) {
                         // Set elementId if not already defined
-                        var playerId = element[0].id || attrs.videoId || 'page-unique-vidible-id-' + pageUniqeId++;
+                        var playerId = element[0].id || attrs.playerId || 'page-unique-vidible-id-' + pageUniqeId++;
                         element[0].id = playerId;
 
                         function applyBroadcast () {
@@ -57,10 +55,9 @@
                                 vidible.VIDEO_PLAY]
                                 .forEach(function(vidibleEvent) {
                                     player.addEventListener(vidibleEvent, function(data) {
-                                        applyBroadcast(getVidibleEventName(vidibleEvent), scope.player, data);
+                                        applyBroadcast(getVidibleEventName(vidibleEvent), player, data);
                                     });
                                 });
-
                         }
 
                         function waitForPlayerToBeReady(div, cb) {
@@ -77,35 +74,24 @@
 
                         function createPlayer(videoId) {
                             // destroy player if exist
-                            //destroyPlayer();
+                            destroyPlayer();
 
+                            var vidibleElement = angular.element('<div class="player vdb_player vdb_55c8aae9e4b0ca68372fb55355af9dcae4b02944c03a2eee"></div>');
+                            // Load the Vidible script
+                            var vidScript = angular.element('<script type="text/javascript-lazy" src="//delivery.vidible.tv/jsonp/pid=55c8aae9e4b0ca68372fb553/vid=' +
+                                videoId + '/55af9dcae4b02944c03a2eee.js"></script>');
+                            vidibleElement.append(vidScript);
 
-                            var vidibleDiv = getVidibleElement();
-                            if (vidibleDiv.length === 0) {
-                                console.error('Couldn\'t find element with id = ' + scope.playerId + '. Make sure the player directive is correctly placed in the DOM.');
-                            } else {
-                                // Load the Vidible script
-                                var vidScript = angular.element('<script type="text/javascript-lazy" src="//delivery.vidible.tv/jsonp/pid=55c8aae9e4b0ca68372fb553/vid=' +
-                                    videoId + '/55af9dcae4b02944c03a2eee.js"></script>');
-                                // Create new Vidible element
-                                $timeout(function() {
-                                    vidibleDiv.append(vidScript);
-                                    //var vidibleElement = angular.element(element);
-                                    //vidibleElement.append(vidScript);
-                                    waitForPlayerToBeReady(vidibleDiv[0], initPlayer);
-                                }, 0);
-                            }
+                            // Create new Vidible element
+                            $timeout(function() {
+                                element.append(vidibleElement);
+                                waitForPlayerToBeReady(vidibleElement[0], initPlayer);
+                            }, 0);
                         }
 
                         function destroyPlayer() {
-                            if (scope.player) {
-                                scope.player.destroy();
-                            }
-
-                            var vidibleDiv = getVidibleElement();
-                            if (vidibleDiv.length > 0) {
-                                angular.element(vidibleDiv).remove();
-                            }
+                            scope.player && scope.player.destroy();
+                            element.empty();
                         }
 
                         // Load player when the directive tag is ready
@@ -117,17 +103,20 @@
                             function (ready) {
                                 if (ready) {
                                     stopWatchingReady();
-
                                     scope.$watch('videoId', function () {
-                                        //scope.videoId = attrs.videoId;
-                                        createPlayer(attrs.videoId);
+                                        createPlayer(scope.videoId);
                                     });
+                                    //scope.$watch(function() {
+                                    //    return element.attr('video-id');
+                                    //}, function (videoId) {
+                                    //    createPlayer(videoId);
+                                    //});
                                 }
                             });
 
-                        //scope.$on('$destroy', function () {
-                        //    scope.player && scope.player.destroy();
-                        //});
+                        scope.$on('$destroy', function () {
+                            destroyPlayer();
+                        });
                     }
                 };
             }
