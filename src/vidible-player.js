@@ -2,11 +2,11 @@
  * Created by tomersela on 8/13/15.
  */
 
-(function (ng) {
+(function(ng) {
     'use strict';
 
     ng.module('vidible-module', [])
-        .service('vidibleQueueLoader', ['$http', '$timeout', function ($http, $timeout) {
+        .service('vidibleQueueLoader', ['$http', '$timeout', function($http, $timeout) {
             var VidibleLoaderQueue = {};
             var videoReadyTimeout = 5000;
             var queue = [];
@@ -35,7 +35,7 @@
                     var now = new Date().getTime();
                     var time = now - stratedWaiting;
                     if (time >= timeout) {
-                        console.error('timout while waiting to vidible script to load...');
+                        console.error('Timeout while waiting to vidible script to load...');
                         console.log(div);
                         stratedWaiting = null;
                         return;
@@ -87,9 +87,9 @@
 
             return VidibleLoaderQueue;
         }])
-        .directive('vidiblePlayer', ['$timeout', 'vidibleQueueLoader',
-            function ($timeout, vidibleQueueLoader) {
-                var pageUniqeId = 1;
+        .directive('vidiblePlayer', ['$timeout', '$interval', 'vidibleQueueLoader',
+            function($timeout, $interval, vidibleQueueLoader) {
+                var pageUniqueId = 1;
                 var eventPrefix = 'vidible.player.';
 
                 function getVidibleEventName(vidibleEvent) {
@@ -110,30 +110,95 @@
                     restrict: 'EA',
                     scope: {
                         videoId: '=videoId',
+                        player: '=?',
                         playerId: '@playerId'
                     },
                     link: function(scope, element, attrs) {
                         // Set elementId if not already defined
-                        var playerId = element[0].id || attrs.playerId || 'page-unique-vidible-id-' + pageUniqeId++;
+                        var playerId = element[0].id || attrs.playerId || 'page-unique-vidible-id-' + pageUniqueId++;
                         element[0].id = playerId;
 
-                        function broadcastEvent () {
+                        function broadcastEvent() {
                             var args = Array.prototype.slice.call(arguments);
-                            scope.$apply(function () {
-                                scope.$emit.apply(scope, args);
-                            });
+                            scope.$emit.apply(scope, args);
                         }
 
-                        function initPlayer(player) {
+                        function registerVidiblePlayerEvents(player, vidiblePlayer) {
+                            // Register player events
                             [vidible.PLAYER_READY,
                                 vidible.VIDEO_END,
                                 vidible.VIDEO_PAUSE,
                                 vidible.VIDEO_PLAY]
                                 .forEach(function(vidibleEvent) {
-                                    player.addEventListener(vidibleEvent, function(data) {
-                                        broadcastEvent(getVidibleEventName(vidibleEvent), player, data);
+                                    vidiblePlayer.addEventListener(vidibleEvent, function(data) {
+                                        broadcastEvent(getVidibleEventName(vidibleEvent), vidiblePlayer, data);
                                     });
                                 });
+                        }
+
+                        function destroyPlayer() {
+                            scope.player && scope.player.getVidiblePlayer() && scope.player.getVidiblePlayer().destroy();
+                            element.empty();
+                        }
+
+                        function watchMuteState(player) {
+                            var currentState = player.isMuted();
+                            return $interval(function() {
+                                var newState = player.isMuted();
+
+                                if (currentState !== newState) {
+                                    var eventName = eventPrefix + (newState ? 'muted' : 'unmuted');
+                                    broadcastEvent(eventName, player, {muted: newState});
+                                }
+                                currentState = newState;
+                            }, 0);
+                        }
+
+                        function initPlayer(vidiblePlayer) {
+
+                            var player = {
+                                getVidiblePlayer: function() {
+                                    return vidiblePlayer;
+                                },
+                                pause: function () {
+                                    vidiblePlayer.pause();
+                                },
+                                play: function() {
+                                    vidiblePlayer.play();
+                                },
+                                mute: function() {
+                                    vidiblePlayer.mute()
+                                },
+                                unmute: function() {
+                                    if (scope.player.isMuted()) {
+                                        vidiblePlayer.mute();
+                                    }
+                                },
+                                getVolume: function() {
+                                    return vidiblePlayer.getPlayerInfo().volume;
+                                },
+                                isMuted: function () {
+                                    try {
+                                        return vidiblePlayer.getPlayerInfo().volume === 0;
+                                    } catch (e) {
+                                        return undefined;
+                                    }
+                                }
+                            };
+
+                            scope.player = player;
+
+                            registerVidiblePlayerEvents(player, vidiblePlayer);
+
+                            // Monitor player's mute state
+                            var muteStateWatchPromise = watchMuteState(player);
+
+                            // Adding destroy function to player
+                            player.destroy = function() {
+                                // Cancel mute state watch
+                                $interval.cancel(muteStateWatchPromise);
+                                destroyPlayer();
+                            }
                         }
 
                         function createPlayer(videoId) {
@@ -144,27 +209,22 @@
                             vidibleQueueLoader.queueForProcessing(videoId, element, initPlayer);
                         }
 
-                        function destroyPlayer() {
-                            scope.player && scope.player.destroy();
-                            element.empty();
-                        }
-
                         // Load player when the directive tag is ready
                         var stopWatchingReady = scope.$watch(
-                            function () {
+                            function() {
                                 // Wait until videoId is defined...
                                 return (typeof scope.videoId !== 'undefined');
                             },
-                            function (ready) {
-                                if (ready) {
+                            function(ready) {
+                                if(ready) {
                                     stopWatchingReady();
-                                    scope.$watch('videoId', function () {
+                                    scope.$watch('videoId', function() {
                                         createPlayer(scope.videoId);
                                     });
                                 }
                             });
 
-                        scope.$on('$destroy', function () {
+                        scope.$on('$destroy', function() {
                             destroyPlayer();
                         });
                     }

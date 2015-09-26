@@ -2,9 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>Angular Vidible player module - Multiple players demo</title>
 </head>
-<body>
+<body ng-app="myApp">
+
+<div class="container" ng-controller="MyCtrl">
+    <!-- Vidible directive -->
+    <vidible-player id="demoPlayer1" video-id="player1.videoId"></vidible-player>
+</div>
+
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="../lib/jquery/dist/jquery.min.js"><\/script>')</script>
+
+<!-- Angular -->
+<script src="../lib/angular/angular.min.js"></script>
+
+<!-- Vidible Angular module -->
+<!--<script src="../dist/vidible-player-angular.min.js"></script>-->
+<script src="../src/vidible-player.js"></script>
+
+<script>
+    var myApp = angular.module('myApp', [
+        'vidible-module'
+    ]);
+    myApp.controller('MyCtrl', function ($scope, $timeout) {
+        $scope.player1 = {
+            videoId: '55be0899e4b02f074914330f'
+        };
+
+        // Change playing video after 10 seconds
+        $timeout(function() {
+            $scope.player1.videoId = '55be318be4b02f07491434ac';
+        }, 10000);
+    });
+</script>
 
 </body>
 </html>
