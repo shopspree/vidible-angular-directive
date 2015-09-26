@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Angular Vidible player module - Multiple players demo</title>
+    <title>Angular Vidible player module - Events demo</title>
 </head>
 <body ng-app="myApp">
 
 <div class="container" ng-controller="MyCtrl">
     <!-- Vidible directive -->
-    <vidible-player id="demoPlayer1" video-id="player1.videoId" player="player1.player"></vidible-player>
-    <vidible-player id="demoPlayer2" video-id="player2.videoId" player="player2.player"></vidible-player>
+    <vidible-player player-id="demoPlayer" video-id="myVideo" player="player1"></vidible-player>
 </div>
 
 <!-- jQuery -->
@@ -21,39 +20,58 @@
 
 <!-- Vidible Angular module -->
 <!--<script src="../dist/vidible-player-angular.min.js"></script>-->
+<script src="../src/angular-loadscript.js"></script>
 <script src="../src/vidible-player.js"></script>
 
 <script>
     var myApp = angular.module('myApp', [
         'vidible-module'
     ]);
-    myApp.controller('MyCtrl', function ($scope) {
-        $scope.player1 = {
-            videoId: '55be0899e4b02f074914330f',
-            player: null
-        };
-        $scope.player2 = {
-            videoId: '55be318be4b02f07491434ac',
-            player: null
-        };
+
+    myApp.controller('MyCtrl', function ($scope, $timeout) {
+        // specify video id
+        $scope.myVideo = '55be0899e4b02f074914330f';
+
+        $scope.player1 = null;
+
+        $timeout(function() {
+            console.log($scope.player1.mute());
+        }, 1000);
+
+        $timeout(function() {
+            console.log($scope.player1.destroy());
+        }, 2000);
+
+        $timeout(function() {
+            console.log($scope.player1.unmute());
+        }, 3000);
+
+        $timeout(function() {
+            console.log($scope.player1.isMuted());
+        }, 4000);
 
         $scope.$on('vidible.player.ready', function ($event, player, playerData) {
-            console.log(playerData.data.videoId + ': vidible.player.ready');
+            console.log('vidible.player.ready');
         });
+
         $scope.$on('vidible.player.playing', function ($event, player, playerData) {
-            console.log(playerData.data.videoId + ': vidible.player.playing');
+            console.log('vidible.player.playing');
         });
+
         $scope.$on('vidible.player.paused', function ($event, player, playerData) {
-            console.log(playerData.data.videoId + ': vidible.player.paused');
+            console.log('vidible.player.paused');
         });
+
         $scope.$on('vidible.player.ended', function ($event, player, playerData) {
-            console.log(playerData.data.videoId + ': vidible.player.ended');
+            console.log('vidible.player.ended');
         });
-        $scope.$on('vidible.player.muted', function ($event, player, playerData) {
-            console.log(playerData.data.videoId + ': vidible.player.muted');
-        });
+
         $scope.$on('vidible.player.unmuted', function ($event, player, playerData) {
-            console.log(playerData.data.videoId + ': vidible.player.unmuted');
+            console.log('vidible.player.unmuted');
+        });
+
+        $scope.$on('vidible.player.muted', function ($event, player, playerData) {
+            console.log('vidible.player.muted');
         });
     });
 </script>

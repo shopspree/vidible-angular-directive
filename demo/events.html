@@ -36,16 +36,24 @@
             console.log('vidible.player.ready');
         });
 
-        $scope.$on('vidible.player.play', function ($event, player, playerData) {
+        $scope.$on('vidible.player.playing', function ($event, player, playerData) {
             console.log('vidible.player.playing');
         });
 
-        $scope.$on('vidible.player.pause', function ($event, player, playerData) {
+        $scope.$on('vidible.player.paused', function ($event, player, playerData) {
             console.log('vidible.player.paused');
         });
 
         $scope.$on('vidible.player.ended', function ($event, player, playerData) {
             console.log('vidible.player.ended');
+        });
+
+        $scope.$on('vidible.player.unmuted', function ($event, player, playerData) {
+            console.log('vidible.player.unmuted');
+        });
+
+        $scope.$on('vidible.player.muted', function ($event, player, playerData) {
+            console.log('vidible.player.muted');
         });
 
     });
