@@ -49,9 +49,9 @@
                 }
             }
 
-            function playerForAutoplay(inAutoplay)
+            function getAppropriatePlayer(isAutoPlayEnabled)
             {
-                return inAutoplay ? kAutoplayVidiblePlayer : kNoAutoplayVidiblePlayer;
+                return isAutoPlayEnabled ? kAutoplayVidiblePlayer : kNoAutoplayVidiblePlayer;
             }
 
             function processQueue() {
@@ -63,11 +63,11 @@
                     // Load the Vidible script
                     loadScriptByVideoId(
                         item.vidOptions.videoId,
-                        playerForAutoplay(item.vidOptions.autoplay),
+                        getAppropriatePlayer(item.vidOptions.autoplay),
                         function (statusCode, script) {
                         if (statusCode == 200) {
                             var vidElement = ng.element(vidibleElement)
-                            vidElement.addClass('vdb_' + playerForAutoplay(item.vidOptions.autoplay) + kSpreeVidibleID);
+                            vidElement.addClass('vdb_' + getAppropriatePlayer(item.vidOptions.autoplay) + kSpreeVidibleID);
                             vidibleElement.append(script);
 
                             // Create new Vidible element
@@ -84,9 +84,12 @@
                 }
             };
 
-            VidibleLoaderQueue.queueForProcessing = function(videoOptions, containerElement, callback) {
+            VidibleLoaderQueue.queueForProcessing = function(videoId,isAutoplay, containerElement, callback) {
                 queue.push({
-                    vidOptions: videoOptions,
+                    vidOptions: {
+                        videoId:videoId,
+                        autoplay:isAutoplay
+                    },
                     elem: containerElement,
                     cb: callback
                 });
@@ -116,6 +119,10 @@
                             return eventPrefix + 'paused';
                         case vidible.VIDEO_PLAY:
                             return eventPrefix + 'playing';
+                        case vidible.VIDEO_DATA_LOADED:
+                            return eventPrefix + 'loaded';
+                        case vidible.VIDEO_TIMEUPDATE:
+                            return eventPrefix + 'timeUpdate';
                     }
                 }
 
@@ -140,9 +147,11 @@
                         function registerVidiblePlayerEvents(player, vidiblePlayer) {
                             // Register player events
                             [vidible.PLAYER_READY,
-                                vidible.VIDEO_END,
+                                vidible.VIDEO_DATA_LOADED,
+                                vidible.VIDEO_PLAY,
                                 vidible.VIDEO_PAUSE,
-                                vidible.VIDEO_PLAY]
+                                vidible.VIDEO_END,
+                                vidible.VIDEO_TIMEUPDATE]
                                 .forEach(function(vidibleEvent) {
                                     vidiblePlayer.addEventListener(vidibleEvent, function(data) {
                                         broadcastEvent(getVidibleEventName(vidibleEvent), vidiblePlayer, data);
@@ -159,10 +168,14 @@
                             var currentState = player.isMuted();
                             return $interval(function() {
                                 var newState = player.isMuted();
+                                if(newState == undefined)
+                                    return;
 
-                                if (currentState !== newState) {
-                                    var eventName = eventPrefix + (newState ? 'muted' : 'unmuted');
-                                    broadcastEvent(eventName, player, {muted: newState});
+                                if(currentState !== undefined) {
+                                    if (currentState !== newState) {
+                                        var eventName = eventPrefix + (newState ? 'muted' : 'unmuted');
+                                        broadcastEvent(eventName, player, {muted: newState});
+                                    }
                                 }
                                 currentState = newState;
                             }, 0);
@@ -180,6 +193,11 @@
                                 play: function() {
                                     vidiblePlayer.play();
                                 },
+                                replay: function() {
+                                    // simple seek and play is buggy (throws exceptions from vidible), so i'm just recreating the player
+                                    scope.autoplay = true;
+                                    createPlayer(scope.videoId);
+                                },
                                 mute: function() {
                                     vidiblePlayer.mute()
                                 },
@@ -193,7 +211,11 @@
                                 },
                                 isMuted: function () {
                                     try {
-                                        return vidiblePlayer.getPlayerInfo().volume === 0;
+                                        var volume = vidiblePlayer.getPlayerInfo().volume;
+                                        if(volume === undefined || volume == null)
+                                            return undefined;
+                                        else
+                                            return vidiblePlayer.getPlayerInfo().volume === 0;
                                     } catch (e) {
                                         return undefined;
                                     }
@@ -221,10 +243,8 @@
 
                             // Create new Vidible element
                             vidibleQueueLoader.queueForProcessing(
-                                {
-                                    videoId:videoId,
-                                    autoplay:scope.autoplay
-                                },
+                                videoId,
+                                scope.autoplay,
                                 element,
                                 initPlayer);
                         }
