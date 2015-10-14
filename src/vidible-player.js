@@ -171,11 +171,9 @@
                                 if(newState == undefined)
                                     return;
 
-                                if(currentState !== undefined) {
-                                    if (currentState !== newState) {
-                                        var eventName = eventPrefix + (newState ? 'muted' : 'unmuted');
-                                        broadcastEvent(eventName, player, {muted: newState});
-                                    }
+                                if(currentState !== undefined && currentState !== newState) {
+                                    var eventName = eventPrefix + (newState ? 'muted' : 'unmuted');
+                                    broadcastEvent(eventName, player, {muted: newState});
                                 }
                                 currentState = newState;
                             }, 0);
@@ -210,15 +208,11 @@
                                     return vidiblePlayer.getPlayerInfo().volume;
                                 },
                                 isMuted: function () {
-                                    try {
-                                        var volume = vidiblePlayer.getPlayerInfo().volume;
-                                        if(volume === undefined || volume == null)
-                                            return undefined;
-                                        else
-                                            return vidiblePlayer.getPlayerInfo().volume === 0;
-                                    } catch (e) {
+                                    var volume = vidiblePlayer.getPlayerInfo().volume;
+                                    if(volume === undefined || volume == null)
                                         return undefined;
-                                    }
+                                    else
+                                        return vidiblePlayer.getPlayerInfo().volume === 0;
                                 }
                             };
 
