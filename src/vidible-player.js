@@ -5,7 +5,7 @@
 (function(ng) {
     'use strict';
 
-    ng.module('vidible-module', [])
+    ng.module('vidible-module',[])
         .service('vidibleQueueLoader', ['$http', '$timeout', function($http, $timeout) {
             var VidibleLoaderQueue = {};
             var videoReadyTimeout = 5000;
@@ -65,22 +65,22 @@
                         item.vidOptions.videoId,
                         getAppropriatePlayer(item.vidOptions.autoplay),
                         function (statusCode, script) {
-                        if (statusCode == 200) {
-                            var vidElement = ng.element(vidibleElement)
-                            vidElement.addClass('vdb_' + getAppropriatePlayer(item.vidOptions.autoplay) + kSpreeVidibleID);
-                            vidibleElement.append(script);
+                            if (statusCode == 200) {
+                                var vidElement = ng.element(vidibleElement)
+                                vidElement.addClass('vdb_' + getAppropriatePlayer(item.vidOptions.autoplay) + kSpreeVidibleID);
+                                vidibleElement.append(script);
 
-                            // Create new Vidible element
-                            item.elem.append(vidibleElement);
-                            waitForPlayerToBeReady(vidibleElement[0], function (player) {
-                                item.cb(player)
+                                // Create new Vidible element
+                                item.elem.append(vidibleElement);
+                                waitForPlayerToBeReady(vidibleElement[0], function (player) {
+                                    item.cb(player)
+                                    processQueue();
+                                }, videoReadyTimeout);
+                            } else {
+                                console.error('Error loading vidable with id = ' + item.vid);
                                 processQueue();
-                            }, videoReadyTimeout);
-                        } else {
-                            console.error('Error loading vidable with id = ' + item.vid);
-                            processQueue();
-                        }
-                    });
+                            }
+                        });
                 }
             };
 
@@ -103,8 +103,33 @@
 
             return VidibleLoaderQueue;
         }])
-        .directive('vidiblePlayer', ['$timeout', '$interval', 'vidibleQueueLoader',
-            function($timeout, $interval, vidibleQueueLoader) {
+        .factory('fullscreen',function() {
+            return {
+                // full screen handling
+                isInFullScreen : function() {
+                    return document.fullscreenElement ||
+                        document.webkitFullscreenElement ||
+                        document.mozFullScreenElement ||
+                        document.msFullscreenElement;
+                },
+
+                removeFullScreenEventLisener: function(fullScreenHandler) {
+                    document.removeEventListener("fullscreenchange", fullScreenHandler);
+                    document.removeEventListener("webkitfullscreenchange", fullScreenHandler);
+                    document.removeEventListener("mozfullscreenchange", fullScreenHandler);
+                    document.removeEventListener("MSFullscreenChange", fullScreenHandler);
+                },
+
+                addFullScreenEventLisener: function(fullScreenHandler) {
+                    document.addEventListener("fullscreenchange", fullScreenHandler);
+                    document.addEventListener("webkitfullscreenchange", fullScreenHandler);
+                    document.addEventListener("mozfullscreenchange", fullScreenHandler);
+                    document.addEventListener("MSFullscreenChange", fullScreenHandler);
+                }
+            };
+        })
+        .directive('vidiblePlayer', ['$timeout', '$interval', 'vidibleQueueLoader','fullscreen',
+            function($timeout, $interval, vidibleQueueLoader,fullscreen) {
                 var pageUniqueId = 1;
                 var eventPrefix = 'vidible.player.';
 
@@ -179,6 +204,41 @@
                             }, 0);
                         }
 
+                        // full screen handling
+
+                        // treat vidible screen fitting when getting back from full screen
+                        function fitVidibleScreenSizeBackFromFullScreen() {
+                            if (!fullscreen.isInFullScreen()) {
+                                // full screen exit. at least in chrome the internal html element
+                                // of vidible changes its dimensions to be fixed pixels, killing
+                                // all chances of responsiveness.
+                                // so i'm forcing
+
+                                var vidibleElement = element[0].querySelector('.vdb_player');
+                                var vidibleFrame = vidibleElement.querySelector('iframe');
+                                var vidibleFrameDocument = vidibleFrame ? vidibleFrame.contentDocument:null;
+
+                                if (!vidibleFrameDocument)
+                                    return;
+                                var htmlPlayer = vidibleFrameDocument.querySelector('#AolHtml5Player');
+                                if (htmlPlayer) {
+                                    htmlPlayer.style.width = '100%';
+                                    htmlPlayer.style.height = '100%';
+                                }
+
+                            }
+                        }
+
+                        function startFullScreenTrackingForVidibleFrameFitting() {
+                            fullscreen.addFullScreenEventLisener(fitVidibleScreenSizeBackFromFullScreen);
+                        }
+
+
+                        function endFullScreenTrackingForVidibleFrameFitting() {
+                            fullscreen.removeFullScreenEventLisener(fitVidibleScreenSizeBackFromFullScreen);
+                        }
+
+
                         function initPlayer(vidiblePlayer) {
 
                             var player = {
@@ -223,10 +283,14 @@
                             // Monitor player's mute state
                             var muteStateWatchPromise = watchMuteState(player);
 
+                            // track full screen to fit frame when coming back
+                            startFullScreenTrackingForVidibleFrameFitting();
+
                             // Adding destroy function to player
                             player.destroy = function() {
                                 // Cancel mute state watch
                                 $interval.cancel(muteStateWatchPromise);
+                                endFullScreenTrackingForVidibleFrameFitting();
                                 destroyPlayer();
                             }
                         }
@@ -253,7 +317,27 @@
                                 if(ready) {
                                     stopWatchingReady();
                                     scope.$watch('videoId', function() {
-                                        createPlayer(scope.videoId);
+
+                                        if (fullscreen.isInFullScreen()) {
+                                            /* moving to the next video.
+
+                                             when in full screen wait to get out of it to move to the next video.
+                                             i'm getting grave display issues in chrome and safari if i don't.
+                                             On chrome the spree-ctrl.html takes over the webpage
+                                             on safari the absolute positioned elements all change their parent
+                                             offset.
+                                             */
+
+                                            var fullScreenHandler = function() {
+                                                fullscreen.removeFullScreenEventLisener(fullScreenHandler);
+                                                createPlayer(scope.videoId);
+                                            };
+                                            fullscreen.addFullScreenEventLisener(fullScreenHandler);
+                                        } else {
+                                            createPlayer(scope.videoId);
+                                        }
+
+
                                     });
                                 }
                             });
