@@ -11,6 +11,9 @@
     "angular",
     "directive"
   ],
+  "main": [
+    "dist/vidible-player-angular.min.js"
+  ],
   "license": "MIT",
   "ignore": [
     "**/.*",

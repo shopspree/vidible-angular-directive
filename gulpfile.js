@@ -9,6 +9,7 @@ var gulp = require('gulp'),
     rename = require('gulp-rename'),
     minifyCss = require('gulp-minify-css'),
     sourcemaps = require('gulp-sourcemaps'),
+    shrinkwrap = require('gulp-shrinkwrap'),
     uglify = require('gulp-uglify'),
     gutil = require('gulp-util');
 
@@ -57,17 +58,24 @@ gulp.task('clean:maps', function() {
         .pipe(clean());
 });
 
-// Minify javascripts
-gulp.task('js', ['clean:js', 'clean:maps'], function () {
+// Javascript, full version
+gulp.task('jsFull', ['clean:js', 'clean:maps'], function () {
+    gulp.src([config.srcFolder + '/*.js'])
+        .pipe(concat('vidible-player-angular.js'))
+        .pipe(gulp.dest(config.distFolder));
+});
+
+// Javascript, minified version
+gulp.task('jsMin', ['clean:js', 'clean:maps'], function () {
     // compress and copy angular
-    gulp.src([config.srcFolder + '/**/*.js'])
-        .pipe(sourcemaps.init())
+    gulp.src([config.srcFolder + '/*.js'])
             .pipe(concat('vidible-player-angular.js'))
             .pipe(uglify().on('error', gutil.log))
             .pipe(rename({suffix: '.min'}))
-        .pipe(sourcemaps.write())
         .pipe(gulp.dest(config.distFolder));
 });
+
+gulp.task('javascripts', ['jsFull', 'jsMin']);
 
 // Shrinkwrap
 gulp.task('shrinkwrap', function () {
