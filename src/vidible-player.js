@@ -12,7 +12,8 @@
                 queue = [],
                 kAutoplayVidiblePlayer = '55c8aae9e4b0ca68372fb553',
                 kNoAutoplayVidiblePlayer = '55e6e684e4b061356c07ceb6',
-                kSpreeVidibleID = '55af9dcae4b02944c03a2eee';
+                kSpreeVidibleID = '55af9dcae4b02944c03a2eee',
+                stratedWaiting;
 
 
             function loadScriptByVideoId(videoId, playerId, callback) {
@@ -27,7 +28,7 @@
                     });
             }
 
-            var stratedWaiting = null;
+            stratedWaiting = null;
             function waitForPlayerToBeReady(div, cb, timeout) {
                 if (!stratedWaiting) {
                     stratedWaiting = new Date().getTime();
@@ -48,8 +49,7 @@
                 }
             }
 
-            function getAppropriatePlayer(isAutoPlayEnabled)
-            {
+            function getAppropriatePlayer(isAutoPlayEnabled) {
                 return isAutoPlayEnabled ? kAutoplayVidiblePlayer : kNoAutoplayVidiblePlayer;
             }
 
@@ -104,8 +104,33 @@
 
             return VidibleLoaderQueue;
         }])
-        .directive('vidiblePlayer', ['$timeout', '$interval', 'vidibleQueueLoader',
-            function ($timeout, $interval, vidibleQueueLoader) {
+        .factory('fullscreen',function () {
+            return {
+                // full screen handling
+                isInFullScreen : function () {
+                    return document.fullscreenElement ||
+                        document.webkitFullscreenElement ||
+                        document.mozFullScreenElement ||
+                        document.msFullscreenElement;
+                },
+
+                removeFullScreenEventLisener: function (fullScreenHandler) {
+                    document.removeEventListener("fullscreenchange", fullScreenHandler);
+                    document.removeEventListener("webkitfullscreenchange", fullScreenHandler);
+                    document.removeEventListener("mozfullscreenchange", fullScreenHandler);
+                    document.removeEventListener("MSFullscreenChange", fullScreenHandler);
+                },
+
+                addFullScreenEventLisener: function (fullScreenHandler) {
+                    document.addEventListener("fullscreenchange", fullScreenHandler);
+                    document.addEventListener("webkitfullscreenchange", fullScreenHandler);
+                    document.addEventListener("mozfullscreenchange", fullScreenHandler);
+                    document.addEventListener("MSFullscreenChange", fullScreenHandler);
+                }
+            };
+        })
+        .directive('vidiblePlayer', ['$interval', 'vidibleQueueLoader', 'fullscreen',
+            function ($interval, vidibleQueueLoader, fullscreen) {
                 var pageUniqueId = 1,
                     eventPrefix = 'vidible.player.';
 
@@ -185,6 +210,40 @@
                             }, 0);
                         }
 
+                        // full screen handling
+
+                        // treat vidible screen fitting when getting back from full screen
+                        function fitVidibleScreenSizeBackFromFullScreen() {
+                            if (!fullscreen.isInFullScreen()) {
+                                // full screen exit. at least in chrome the internal html element
+                                // of vidible changes its dimensions to be fixed pixels, killing
+                                // all chances of responsiveness.
+                                // so i'm forcing
+
+                                var vidibleElement = element[0].querySelector('.vdb_player');
+                                var vidibleFrame = vidibleElement.querySelector('iframe');
+                                var vidibleFrameDocument = vidibleFrame ? vidibleFrame.contentDocument:null;
+
+                                if (!vidibleFrameDocument)
+                                    return;
+                                var htmlPlayer = vidibleFrameDocument.querySelector('#AolHtml5Player');
+                                if (htmlPlayer) {
+                                    htmlPlayer.style.width = '100%';
+                                    htmlPlayer.style.height = '100%';
+                                }
+
+                            }
+                        }
+
+                        function startFullScreenTrackingForVidibleFrameFitting() {
+                            fullscreen.addFullScreenEventLisener(fitVidibleScreenSizeBackFromFullScreen);
+                        }
+
+
+                        function endFullScreenTrackingForVidibleFrameFitting() {
+                            fullscreen.removeFullScreenEventLisener(fitVidibleScreenSizeBackFromFullScreen);
+                        }
+
                         function initPlayer(vidiblePlayer) {
 
                             var player = {
@@ -230,10 +289,14 @@
                             // Monitor player's mute state
                             muteStateWatchPromise = watchMuteState(player);
 
+                            // Track full screen to fit frame when coming back
+                            startFullScreenTrackingForVidibleFrameFitting();
+
                             // Adding destroy function to player
                             player.destroy = function () {
                                 // Cancel mute state watch
                                 $interval.cancel(muteStateWatchPromise);
+                                endFullScreenTrackingForVidibleFrameFitting();
                                 destroyPlayer();
                             };
                         }
@@ -255,6 +318,14 @@
                             element.innerHTML = '';
                         }
 
+                        function createElementContent(videoId) {
+                            if (videoId) {
+                                createPlayer(videoId);
+                            } else {
+                                emptyHTML();
+                            }
+                        }
+
                         // Load player when the directive tag is ready
                         stopWatchingReady = scope.$watch(
                             function () {
@@ -264,11 +335,25 @@
                             function (ready) {
                                 if (ready) {
                                     stopWatchingReady();
-                                    scope.$watch('videoId', function() {
-                                        if (scope.videoId) {
-                                            createPlayer(scope.videoId);
+                                    scope.$watch('videoId', function () {
+
+                                        if (fullscreen.isInFullScreen()) {
+                                            /* moving to the next video.
+
+                                             when in full screen wait to get out of it to move to the next video.
+                                             i'm getting grave display issues in chrome and safari if i don't.
+                                             On chrome the spree-ctrl.html takes over the webpage
+                                             on safari the absolute positioned elements all change their parent
+                                             offset.
+                                             */
+
+                                            var fullScreenHandler = function () {
+                                                fullscreen.removeFullScreenEventLisener(fullScreenHandler);
+                                                createElementContent(scope.videoId);
+                                            };
+                                            fullscreen.addFullScreenEventLisener(fullScreenHandler);
                                         } else {
-                                            emptyHTML();
+                                            createElementContent(scope.videoId);
                                         }
                                     });
                                 }
