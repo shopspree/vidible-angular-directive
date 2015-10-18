@@ -208,7 +208,7 @@
                                     broadcastEvent(eventName, player, {muted: newState});
                                 }
                                 currentState = newState;
-                            }, 0);
+                            }, 100);
                         }
 
                         // full screen handling
