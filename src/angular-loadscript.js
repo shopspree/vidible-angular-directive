@@ -22,29 +22,25 @@
  * License: 2013 - released to the Public Domain.
  */
 
-/*global angular */
-(function (ng) {
-    'use strict';
+'use strict';
 
+/*global angular */
+(function(ng) {
     var app = ng.module('ngLoadScript', []);
 
     app.directive('script', function() {
         return {
             restrict: 'E',
             scope: false,
-            link: function(scope, elem, attr)
-            {
-                if (attr.type==='text/javascript-lazy')
-                {
+            link: function(scope, elem, attr) {
+                if (attr.type === 'text/javascript-lazy') {
                     var s = document.createElement("script");
                     s.type = "text/javascript";
                     var src = elem.attr('src');
-                    if(src!==undefined)
-                    {
+                    if (src !== undefined) {
                         s.src = src;
                     }
-                    else
-                    {
+                    else {
                         var code = elem.text();
                         s.text = code;
                     }
