@@ -34,7 +34,7 @@ gulp.task('clean:sass', function() {
 });
 
 // Compile sass to css and minify css stylesheets
-gulp.task('sass', ['clean:sass'], function () {
+gulp.task('sass', ['clean:sass'], function() {
     gulp.src(config.sassFolder + '/**/*.scss')
         .pipe(sass())
         .pipe(gulp.dest(config.cssFolder));
@@ -59,33 +59,33 @@ gulp.task('clean:maps', function() {
 });
 
 // Javascript, full version
-gulp.task('jsFull', ['clean:js', 'clean:maps'], function () {
+gulp.task('jsFull', ['clean:js', 'clean:maps'], function() {
     gulp.src([config.srcFolder + '/*.js'])
         .pipe(concat('vidible-player-angular.js'))
         .pipe(gulp.dest(config.distFolder));
 });
 
 // Javascript, minified version
-gulp.task('jsMin', ['clean:js', 'clean:maps'], function () {
+gulp.task('jsMin', ['clean:js', 'clean:maps'], function() {
     // compress and copy angular
     gulp.src([config.srcFolder + '/*.js'])
-            .pipe(concat('vidible-player-angular.js'))
-            .pipe(uglify().on('error', gutil.log))
-            .pipe(rename({suffix: '.min'}))
+        .pipe(concat('vidible-player-angular.js'))
+        .pipe(uglify().on('error', gutil.log))
+        .pipe(rename({suffix: '.min'}))
         .pipe(gulp.dest(config.distFolder));
 });
 
 gulp.task('javascripts', ['jsFull', 'jsMin']);
 
 // Shrinkwrap
-gulp.task('shrinkwrap', function () {
+gulp.task('shrinkwrap', function() {
     return gulp.src('package.json')
         .pipe(shrinkwrap())      // just like running `npm shrinkwrap`
         .pipe(gulp.dest('./'));  // writes newly created `npm-shrinkwrap.json` to the location of your choice
 });
 
 // Watch file changes and update
-gulp.task('watch', function () {
+gulp.task('watch', function() {
     gulp.watch(config.srcFolder + '/**/*.js', ['js']);
     gulp.watch(config.srcFolder + '/**/*.scss', ['sass']);
     gulp.watch('./bower.json', ['bower']);
