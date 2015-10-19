@@ -288,19 +288,22 @@
 
                             registerVidiblePlayerEvents(player, vidiblePlayer);
 
-                            // Monitor player's mute state
-                            muteStateWatchPromise = watchMuteState(player);
+                            // When player is ready:
+                            scope.$on(getVidibleEventName(vidible.PLAYER_READY), function() {
+                                // 1. Monitor player's mute state
+                                muteStateWatchPromise = watchMuteState(player);
 
-                            // Track full screen to fit frame when coming back
-                            startFullScreenTrackingForVidibleFrameFitting();
+                                // 2. Track full screen to fit frame when coming back
+                                startFullScreenTrackingForVidibleFrameFitting();
 
-                            // Adding destroy function to player
-                            player.destroy = function() {
-                                // Cancel mute state watch
-                                $interval.cancel(muteStateWatchPromise);
-                                endFullScreenTrackingForVidibleFrameFitting();
-                                destroyPlayer();
-                            };
+                                // 3. Adding destroy function to player
+                                player.destroy = function() {
+                                    // Cancel mute state watch
+                                    $interval.cancel(muteStateWatchPromise);
+                                    endFullScreenTrackingForVidibleFrameFitting();
+                                    destroyPlayer();
+                                };
+                            });
                         }
 
                         function createPlayer(videoId) {
