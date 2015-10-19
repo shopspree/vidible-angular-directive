@@ -9,7 +9,7 @@
     ng.module('vidible-module', [])
         .service('vidibleQueueLoader', ['$http', '$timeout', function($http, $timeout) {
             var VidibleLoaderQueue = {},
-                videoReadyTimeout = 5000,
+                videoReadyTimeout = 30000,
                 queue = [],
                 kAutoplayVidiblePlayer = '55c8aae9e4b0ca68372fb553',
                 kNoAutoplayVidiblePlayer = '55e6e684e4b061356c07ceb6',
