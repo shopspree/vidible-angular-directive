@@ -329,6 +329,9 @@
                                     getVolume: function() {
                                         return vidiblePlayer.getPlayerInfo().volume;
                                     },
+                                    setVolume: function(volume) {
+                                        return vidiblePlayer.volume(volume);
+                                    },
                                     isMuted: function() {
                                         var volume = vidiblePlayer.getPlayerInfo().volume;
                                         if (volume === undefined || volume === null) {
