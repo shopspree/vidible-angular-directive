@@ -2,24 +2,21 @@
  * Created by tomersela on 8/13/15.
  */
 
-'use strict';
-
 (function(ng) {
+    'use strict';
 
     ng.module('vidible-module', [])
-        .service('vidibleQueueLoader', ['$http', '$timeout', function($http, $timeout) {
+        .service('VidibleQueueLoader', ['$http', '$timeout', function($http, $timeout) {
+            var VIDEO_READY_TIMEOUT = 30000;
+
             var VidibleLoaderQueue = {},
-                videoReadyTimeout = 30000,
                 queue = [],
-                kAutoplayVidiblePlayer = '55c8aae9e4b0ca68372fb553',
-                kNoAutoplayVidiblePlayer = '55e6e684e4b061356c07ceb6',
-                kSpreeVidibleID = '55af9dcae4b02944c03a2eee',
                 stratedWaiting;
 
 
-            function loadScriptByVideoId(videoId, playerId, callback) {
+            function loadScriptByVideoId(videoId, playerId, vidibleAccountId, callback) {
                 var vidibleScriptUrl = 'http://delivery.vidible.tv/jsonp/pid=' + playerId + '/vid=' +
-                    videoId + '/' + kSpreeVidibleID + '.js';
+                    videoId + '/' + vidibleAccountId + '.js';
 
                 $http.get(vidibleScriptUrl).
                     then(function(response) {
@@ -50,10 +47,6 @@
                 }
             }
 
-            function getAppropriatePlayer(isAutoPlayEnabled) {
-                return isAutoPlayEnabled ? kAutoplayVidiblePlayer : kNoAutoplayVidiblePlayer;
-            }
-
             function processQueue() {
                 if (queue.length > 0) {
                     // Remove element from queue
@@ -62,21 +55,22 @@
                     // Load the Vidible script
                     loadScriptByVideoId(
                         item.vidOptions.videoId,
-                        getAppropriatePlayer(item.vidOptions.autoplay),
+                        item.vidOptions.vidiblePlayerId,
+                        item.vidOptions.vidibleAccountId,
                         function(statusCode, script) {
                             if (statusCode === 200) {
                                 var vidElement = ng.element(vidibleElement),
                                     s = document.createElement('script');
-                                vidElement.addClass('vdb_' + getAppropriatePlayer(item.vidOptions.autoplay) + kSpreeVidibleID);
+                                vidElement.addClass('vdb_' + item.vidOptions.vidiblePlayerId + item.vidOptions.vidibleAccountId);
                                 // script tag is added with javascript becasue if added in HTML it wouldn't exectue
                                 s.innerText = script;
                                 vidibleElement[0].appendChild(s);
                                 // Create new Vidible element
                                 item.elem.append(vidibleElement);
                                 waitForPlayerToBeReady(vidibleElement[0], function(player) {
-                                    item.cb(player)
+                                    item.cb(player);
                                     processQueue();
-                                }, videoReadyTimeout);
+                                }, VIDEO_READY_TIMEOUT);
                             } else {
                                 console.error('Error loading vidable with id = ' + item.vid);
                                 processQueue();
@@ -86,11 +80,12 @@
                 }
             }
 
-            VidibleLoaderQueue.queueForProcessing = function(videoId, isAutoplay, containerElement, callback) {
+            VidibleLoaderQueue.queueForProcessing = function(videoId, vidiblePlayerId, vidibleAccountId, containerElement, callback) {
                 queue.push({
                     vidOptions: {
                         videoId: videoId,
-                        autoplay: isAutoplay
+                        vidiblePlayerId: vidiblePlayerId,
+                        vidibleAccountId: vidibleAccountId
                     },
                     elem: containerElement,
                     cb: callback
@@ -105,51 +100,27 @@
 
             return VidibleLoaderQueue;
         }])
-        .factory('fullscreen', function() {
-            return {
-                // full screen handling
-                isInFullScreen: function() {
-                    return document.fullscreenElement ||
-                        document.webkitFullscreenElement ||
-                        document.mozFullScreenElement ||
-                        document.msFullscreenElement;
-                },
-
-                removeFullScreenEventLisener: function(fullScreenHandler) {
-                    document.removeEventListener("fullscreenchange", fullScreenHandler);
-                    document.removeEventListener("webkitfullscreenchange", fullScreenHandler);
-                    document.removeEventListener("mozfullscreenchange", fullScreenHandler);
-                    document.removeEventListener("MSFullscreenChange", fullScreenHandler);
-                },
-
-                addFullScreenEventLisener: function(fullScreenHandler) {
-                    document.addEventListener("fullscreenchange", fullScreenHandler);
-                    document.addEventListener("webkitfullscreenchange", fullScreenHandler);
-                    document.addEventListener("mozfullscreenchange", fullScreenHandler);
-                    document.addEventListener("MSFullscreenChange", fullScreenHandler);
-                }
-            };
-        })
-        .directive('vidiblePlayer', ['$interval', 'vidibleQueueLoader', 'fullscreen',
-            function($interval, vidibleQueueLoader, fullscreen) {
-                var pageUniqueId = 1,
-                    eventPrefix = 'vidible.player.';
+        .directive('vidiblePlayer', ['$window', '$interval', 'VidibleQueueLoader',
+            function($window, $interval, VidibleQueueLoader) {
+                var EVENT_PREFIX = 'vidible.player.',
+                    PLAYER_READY_EVENT = 'vidible.player.ready';
+                var pageUniqueId = 1;
 
                 function getVidibleEventName(vidibleEvent) {
                     // Can use this function only when a vidible script is loaded (When the player is active in our case)
                     switch (vidibleEvent) {
-                        case vidible.PLAYER_READY:
-                            return eventPrefix + 'ready';
-                        case vidible.VIDEO_END:
-                            return eventPrefix + 'ended';
-                        case vidible.VIDEO_PAUSE:
-                            return eventPrefix + 'paused';
-                        case vidible.VIDEO_PLAY:
-                            return eventPrefix + 'playing';
-                        case vidible.VIDEO_DATA_LOADED:
-                            return eventPrefix + 'loaded';
-                        case vidible.VIDEO_TIMEUPDATE:
-                            return eventPrefix + 'timeUpdate';
+                        case $window.vidible.PLAYER_READY:
+                            return EVENT_PREFIX + 'ready';
+                        case $window.vidible.VIDEO_END:
+                            return EVENT_PREFIX + 'ended';
+                        case $window.vidible.VIDEO_PAUSE:
+                            return EVENT_PREFIX + 'paused';
+                        case $window.vidible.VIDEO_PLAY:
+                            return EVENT_PREFIX + 'playing';
+                        case $window.vidible.VIDEO_DATA_LOADED:
+                            return EVENT_PREFIX + 'loaded';
+                        case $window.vidible.VIDEO_TIMEUPDATE:
+                            return EVENT_PREFIX + 'timeUpdate';
                     }
                 }
 
@@ -157,9 +128,10 @@
                     restrict: 'EA',
                     scope: {
                         videoId: '=videoId',
-                        player: '=?',
+                        player: '=?player',
                         playerId: '@playerId',
-                        autoplay: '=?autoplay'
+                        vidiblePlayerId: '@vidiblePlayerId',
+                        vidibleAccountId: '@vidibleAccountId'
                     },
                     link: function(scope, element, attrs) {
                         // Set elementId if not already defined
@@ -183,7 +155,7 @@
                                 vidible.VIDEO_TIMEUPDATE]
                                 .forEach(function(vidibleEvent) {
                                     vidiblePlayer.addEventListener(vidibleEvent, function(data) {
-                                        broadcastEvent(getVidibleEventName(vidibleEvent), vidiblePlayer, data);
+                                        broadcastEvent(getVidibleEventName(vidibleEvent), player, vidiblePlayer, data);
                                     });
                                 });
                         }
@@ -204,108 +176,82 @@
                                     return;
                                 }
                                 if (currentState !== undefined && currentState !== newState) {
-                                    eventName = eventPrefix + (newState ? 'muted' : 'unmuted');
+                                    eventName = EVENT_PREFIX + (newState ? 'muted' : 'unmuted');
                                     broadcastEvent(eventName, player, {muted: newState});
                                 }
                                 currentState = newState;
                             }, 100);
                         }
 
-                        // full screen handling
-
-                        // treat vidible screen fitting when getting back from full screen
-                        function fitVidibleScreenSizeBackFromFullScreen() {
-                            if (!fullscreen.isInFullScreen()) {
-                                // full screen exit. at least in chrome the internal html element
-                                // of vidible changes its dimensions to be fixed pixels, killing
-                                // all chances of responsiveness.
-                                // so i'm forcing
-
-                                var vidibleElement = element[0].querySelector('.vdb_player');
-                                var vidibleFrame = vidibleElement.querySelector('iframe');
-                                var vidibleFrameDocument = vidibleFrame ? vidibleFrame.contentDocument : null;
-
-                                if (!vidibleFrameDocument) {
-                                    return;
-                                }
-                                var htmlPlayer = vidibleFrameDocument.querySelector('#AolHtml5Player');
-                                if (htmlPlayer) {
-                                    htmlPlayer.style.width = '100%';
-                                    htmlPlayer.style.height = '100%';
-                                }
-
-                            }
-                        }
-
-                        function startFullScreenTrackingForVidibleFrameFitting() {
-                            fullscreen.addFullScreenEventLisener(fitVidibleScreenSizeBackFromFullScreen);
-                        }
-
-
-                        function endFullScreenTrackingForVidibleFrameFitting() {
-                            fullscreen.removeFullScreenEventLisener(fitVidibleScreenSizeBackFromFullScreen);
-                        }
-
                         function initPlayer(vidiblePlayer) {
 
                             var player = {
-                                    getVidiblePlayer: function() {
-                                        return vidiblePlayer;
-                                    },
-                                    pause: function() {
-                                        vidiblePlayer.pause();
-                                    },
-                                    play: function() {
-                                        vidiblePlayer.play();
-                                    },
-                                    replay: function() {
-                                        // simple seek and play is buggy (throws exceptions from vidible), so i'm just recreating the player
-                                        scope.autoplay = true;
-                                        createPlayer(scope.videoId);
-                                    },
-                                    mute: function() {
+                                getVidiblePlayer: function() {
+                                    return vidiblePlayer;
+                                },
+                                getVidibleElement: function() {
+                                    return element[0].querySelector('.vdb_player');
+                                },
+                                pause: function() {
+                                    vidiblePlayer.pause();
+                                },
+                                play: function() {
+                                    vidiblePlayer.play();
+                                },
+                                replay: function() {
+                                    vidiblePlayer.seekTo(0);
+                                    vidiblePlayer.play();
+                                },
+                                mute: function() {
+                                    vidiblePlayer.mute();
+                                },
+                                unmute: function() {
+                                    if (scope.player.isMuted()) {
                                         vidiblePlayer.mute();
-                                    },
-                                    unmute: function() {
-                                        if (scope.player.isMuted()) {
-                                            vidiblePlayer.mute();
-                                        }
-                                    },
-                                    getVolume: function() {
-                                        return vidiblePlayer.getPlayerInfo().volume;
-                                    },
-                                    setVolume: function(volume) {
-                                        return vidiblePlayer.volume(volume);
-                                    },
-                                    isMuted: function() {
-                                        var volume = vidiblePlayer.getPlayerInfo().volume;
-                                        if (volume === undefined || volume === null) {
-                                            return undefined;
-                                        }
-                                        return vidiblePlayer.getPlayerInfo().volume === 0;
                                     }
                                 },
-                                muteStateWatchPromise;
+                                getVolume: function() {
+                                    try {
+                                        return vidiblePlayer.getPlayerInfo().volume;
+                                    } catch (e) {
+                                        // Vidible throws an exception when calling getPlayerInfo after the playing-
+                                        // video reached to an end
+                                        return undefined;
+                                    }
+                                },
+                                setVolume: function(volume) {
+                                    return vidiblePlayer.volume(volume);
+                                },
+                                isMuted: function() {
+                                    var volume = player.getVolume();
+                                    if (volume === undefined || volume === null) {
+                                        return undefined;
+                                    }
+                                    return volume === 0;
+                                },
+                                destroy: function() {
+                                    // This method will be overridden after the player is ready
+                                    console.warn('Player is not yet ready. nothing to destroy...')
+                                }
+                            };
 
                             scope.player = player;
 
                             registerVidiblePlayerEvents(player, vidiblePlayer);
 
-                            // When player is ready:
-                            scope.$on(getVidibleEventName(vidible.PLAYER_READY), function() {
-                                // 1. Monitor player's mute state
-                                muteStateWatchPromise = watchMuteState(player);
+                            // When player is ready
+                            scope.$on(PLAYER_READY_EVENT, function(eventName, eventPlayer) {
+                                if (eventPlayer === player) {
+                                    // Monitor player's mute state
+                                    var muteStateWatchInterval = watchMuteState(player);
 
-                                // 2. Track full screen to fit frame when coming back
-                                startFullScreenTrackingForVidibleFrameFitting();
-
-                                // 3. Adding destroy function to player
-                                player.destroy = function() {
-                                    // Cancel mute state watch
-                                    $interval.cancel(muteStateWatchPromise);
-                                    endFullScreenTrackingForVidibleFrameFitting();
-                                    destroyPlayer();
-                                };
+                                    // Override player's destroy function
+                                    player.destroy = function() {
+                                        // Cancel mute state watch
+                                        $interval.cancel(muteStateWatchInterval);
+                                        destroyPlayer();
+                                    };
+                                }
                             });
                         }
 
@@ -314,24 +260,13 @@
                             destroyPlayer();
 
                             // Create new Vidible element
-                            vidibleQueueLoader.queueForProcessing(
+                            VidibleQueueLoader.queueForProcessing(
                                 videoId,
-                                scope.autoplay,
+                                scope.vidiblePlayerId,
+                                scope.vidibleAccountId,
                                 element,
                                 initPlayer
                             );
-                        }
-
-                        function emptyHTML() {
-                            element.innerHTML = '';
-                        }
-
-                        function createElementContent(videoId) {
-                            if (videoId) {
-                                createPlayer(videoId);
-                            } else {
-                                emptyHTML();
-                            }
                         }
 
                         // Load player when the directive tag is ready
@@ -341,32 +276,13 @@
                                 return (typeof scope.videoId !== 'undefined');
                             },
                             function(ready) {
-                                if (ready) {
+                                if(ready) {
                                     stopWatchingReady();
                                     scope.$watch('videoId', function() {
-
-                                        if (fullscreen.isInFullScreen()) {
-                                            /* moving to the next video.
-
-                                             when in full screen wait to get out of it to move to the next video.
-                                             i'm getting grave display issues in chrome and safari if i don't.
-                                             On chrome the spree-ctrl.html takes over the webpage
-                                             on safari the absolute positioned elements all change their parent
-                                             offset.
-                                             */
-
-                                            var fullScreenHandler = function() {
-                                                fullscreen.removeFullScreenEventLisener(fullScreenHandler);
-                                                createElementContent(scope.videoId);
-                                            };
-                                            fullscreen.addFullScreenEventLisener(fullScreenHandler);
-                                        } else {
-                                            createElementContent(scope.videoId);
-                                        }
+                                        createPlayer(scope.videoId);
                                     });
                                 }
-                            }
-                        );
+                            });
 
                         scope.$on('$destroy', function() {
                             destroyPlayer();
