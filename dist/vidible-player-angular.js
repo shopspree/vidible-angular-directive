@@ -1,58 +1,3 @@
-/*
- *  Angular LoadScript
- *
- *  Let angular load and execute lazy javascript from partials!
- *
- *  This module is the result of  this issue: "1.2.0rc1 regression: script tags not loaded via ngInclude"
- *  Issue url: https://github.com/angular/angular.js/issues/3756
- *
- *  As of Angular 1.2.0 the ngInclude scripts does not permit execution of javascript from included partials.
- *  This little module execute code inside script tags with "javascript-lazy" attribute after partial loading,
- *  thus re-enabling this feature.
- *
- *  ( please have a look at the issue comments, this angular feature was never planned nor included properly,
- *  was only a drawback of using jQuery for partial inclusion )
- *
- *  This angular module have been created by @endorama (https://github.com/endorama) based upon the code
- *  posted by @olostan (https://github.com/olostan)
- *
- *  Simply add this file, load ngLoadScript module as application dependency and use type="text/javascript-lazy"
- *  as type for script you which to load lazily in partials.
- *
- * License: 2013 - released to the Public Domain.
- */
-
-'use strict';
-
-/*global angular */
-(function(ng) {
-    var app = ng.module('ngLoadScript', []);
-
-    app.directive('script', function() {
-        return {
-            restrict: 'E',
-            scope: false,
-            link: function(scope, elem, attr) {
-                if (attr.type === 'text/javascript-lazy') {
-                    var s = document.createElement("script");
-                    s.type = "text/javascript";
-                    var src = elem.attr('src');
-                    if (src !== undefined) {
-                        s.src = src;
-                    }
-                    else {
-                        var code = elem.text();
-                        s.text = code;
-                    }
-                    document.head.appendChild(s);
-                    elem.remove();
-                }
-            }
-        };
-    });
-
-}(angular));
-
 /**
  * Created by tomersela on 8/13/15.
  */
@@ -118,7 +63,7 @@
                                     s = document.createElement('script');
                                 vidElement.addClass('vdb_' + item.vidOptions.vidiblePlayerId + item.vidOptions.vidibleAccountId);
                                 // script tag is added with javascript becasue if added in HTML it wouldn't exectue
-                                s.innerText = script;
+                                s.innerHTML = 'console.log("running vidible script");\n' + script;
                                 vidibleElement[0].appendChild(s);
                                 // Create new Vidible element
                                 item.elem.append(vidibleElement);
