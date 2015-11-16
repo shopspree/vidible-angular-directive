@@ -63,7 +63,7 @@
                                     s = document.createElement('script');
                                 vidElement.addClass('vdb_' + item.vidOptions.vidiblePlayerId + item.vidOptions.vidibleAccountId);
                                 // script tag is added with javascript becasue if added in HTML it wouldn't exectue
-                                s.innerHTML = 'console.log("running vidible script");\n' + script;
+                                s.innerHTML = script;
                                 vidibleElement[0].appendChild(s);
                                 // Create new Vidible element
                                 item.elem.append(vidibleElement);
