@@ -86,7 +86,7 @@ gulp.task('shrinkwrap', function() {
 
 // Watch file changes and update
 gulp.task('watch', function() {
-    gulp.watch(config.srcFolder + '/**/*.js', ['js']);
+    gulp.watch(config.srcFolder + '/**/*.js', ['javascripts']);
     gulp.watch(config.srcFolder + '/**/*.scss', ['sass']);
     gulp.watch('./bower.json', ['bower']);
 });
