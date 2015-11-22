@@ -68,12 +68,12 @@
                                 // Create new Vidible element
                                 item.elem.append(vidibleElement);
                                 waitForPlayerToBeReady(vidibleElement[0], function(player) {
-                                    item.cb(player);
+                                    item.cb(null, player);
                                     processQueue();
                                 }, VIDEO_READY_TIMEOUT);
                             } else {
                                 console.error('Error loading vidable with id = ' + item.vid);
-                                broadcastEvent('vidible.scriptLoadError', statusCode, item.vid);
+                                item.cb({statusCode: statusCode, vid: item.vid}, null);
                                 processQueue();
                             }
                         }
@@ -184,7 +184,11 @@
                             }, 100);
                         }
 
-                        function initPlayer(vidiblePlayer) {
+                        function initPlayer(errorData, vidiblePlayer) {
+                            if (errorData) {
+                                broadcastEvent('vidible.scriptLoadError', errorData);
+                                return;
+                            }
 
                             var player = {
                                 getVidiblePlayer: function() {
