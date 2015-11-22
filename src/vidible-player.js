@@ -73,6 +73,7 @@
                                 }, VIDEO_READY_TIMEOUT);
                             } else {
                                 console.error('Error loading vidable with id = ' + item.vid);
+                                broadcastEvent('vidible.scriptLoadError', statusCode, item.vid);
                                 processQueue();
                             }
                         }
