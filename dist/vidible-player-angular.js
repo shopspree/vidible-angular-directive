@@ -6,7 +6,7 @@
     'use strict';
 
     ng.module('vidible-module', [])
-        .service('VidibleQueueLoader', ['$http', '$timeout','$location', function($http, $timeout, $location) {
+        .service('VidibleQueueLoader', ['$http', '$timeout', function($http, $timeout) {
             var VIDEO_READY_TIMEOUT = 30000;
 
             var VidibleLoaderQueue = {},
@@ -15,7 +15,7 @@
 
 
             function loadScriptByVideoId(videoId, playerId, vidibleAccountId, callback) {
-                var vidibleScriptUrl = $location.protocol() + '://delivery.vidible.tv/jsonp/pid=' + playerId + '/vid=' +
+                var vidibleScriptUrl = 'https://delivery.vidible.tv/jsonp/pid=' + playerId + '/vid=' +
                     videoId + '/' + vidibleAccountId + '.js';
 
                 $http.get(vidibleScriptUrl).
